@@ -9,72 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class ScatteringFactorParameter(Parameter):
-    """
-    Construct of 2 to 4 Parameter instances representing real- and imaginary-,
-    charge- and magnetic- parts of a scattering element.
 
-    Keyword argument:
-    name -- str
-        identifier
-    f_charge_real -- instance of Parameter class
-        Real part of the charge component of the scattering factor
-    f_charge_imag -- instance of Parameter class
-        Imaginary part of the charge component of the scattering factor
-    f_magn_real -- instance of Parameter class
-        Real part of magnetic contribution to scattering factor
-    f_magn_imag -- instance of Parameter class
-        Imaginary part of magnetic contribution to scattering factor
-    return_mode -- str, one of 'full', 'charge', 'magn', '+', '-'
-        Indicates return mode of the scattering factor. Might be only charge,
-        only magnetic, or adding or subtracting the magnetic contribution,
-    """
-    def __init__(self, name,
-                 f_charge_real, f_charge_imag,
-                 f_magn_real=None, f_magn_imag=None,
-                 return_mode='full'):
-        self.name = name
-        self._raw_val = None
-        self.bounds = None
-        self.fit = None
-        self._text = None
-        self._coupler = None
-        self.f_ch_r = f_charge_real
-        self.f_ch_i = f_charge_imag
-        if f_magn_real is None:
-            self.f_m_r = Parameter('undefined', 0.)
-        else:
-            self.f_m_r = f_magn_real
-        if f_magn_imag is None:
-            self.f_m_i = Parameter('undefined', 0.)
-        else:
-            self.f_m_i = f_magn_imag
-        self.return_mode = return_mode
-
-    def set_return_mode(self, return_mode):
-        self.return_mode = return_mode
-
-    def _validate(self):
-        return
-
-    @property
-    def value(self):
-        logger.debug(f'Calling ScatteringFactorPara: mode={self.return_mode}')
-        if self.return_mode == 'full':
-            return self.f_ch_r()+self.f_m_r() + 1j*(self.f_ch_i()+self.f_m_i())
-        elif self.return_mode in ['charge', 'c']:
-            return self.f_ch_r() + 1j * self.f_ch_i()
-        elif self.return_mode in ['magn', 'mag', 'magnetic', 'm']:
-            return self.f_m_r() + 1j * self.f_m_i()
-        elif self.return_mode in ['+', 'plus']:
-            return self.f_ch_r()+self.f_m_r() + 1j*(self.f_ch_i()+self.f_m_i())
-        elif self.return_mode in ['-', 'minus']:
-            return self.f_ch_r()-self.f_m_r() + 1j*(self.f_ch_i()-self.f_m_i())
-        else:
-            raise NameError('ScatteringFactorParameter return mode unknown.')
-
-    def get_value(self):
-        return self.value
 
 
 class ParameterGroup(object):

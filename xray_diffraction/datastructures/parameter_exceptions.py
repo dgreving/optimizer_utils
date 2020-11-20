@@ -1,0 +1,2 @@
+class WrongObjectException(Exception):
+    pass

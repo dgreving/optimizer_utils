@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 from .compatability import Coupler_compatability_mixin
 from .compatability import Parameter_Compatability_mixin
 
+from . import parameter_exceptions as exc
+
 logger = logging.getLogger(__name__)
 
 
@@ -52,55 +54,41 @@ class IdentityCoupler(Coupler):
         return f'class IdentityCoupler, value: {self.modifier.value}'
 
 
-class AdditiveCoupler(Coupler):
-    def coupling_func(self):
-        """calculate __add__ of two Parameter instances"""
-        return self.value
+class ArithmeticCoupler(Coupler):
+    my_dict = {
+        '+': lambda x, y: x + y,
+        '-': lambda x, y: x - y,
+        '*': lambda x, y: x * y,
+    }
+    _op = None
 
     @property
     def value(self):
-        return self.base + self.modifier
+        logger.debug('calling AdditiveCoupler.value')
+        return self.my_dict[self._op](self.base.value, self.modifier._raw_val)
 
     def __repr__(self):
-        return '{}(base: "{}") + {}(mod: "{}") = {}'.format(
+        return '{}(base: "{}") {} {}(modifier: "{}") = {}'.format(
             self.base.value,
             self.base.name,
+            self._op,
             self.modifier.get_value(no_coupling=True),
             self.modifier.name,
-            self.coupling_func(),
+            self.value,
             )
 
 
-class SubtractiveCoupler(Coupler):
-    def coupling_func(self):
-        return self.value
-
-    @property
-    def value(self):
-        return self.base - self.modifier
-
-    def __repr__(self):
-        return '{}({}) - {}({}) = {}'.format(
-            self.base.value,
-            self.base.name,
-            self.modifier.get_value(no_coupling=True),
-            self.modifier.name,
-            self.coupling_func(),
-            )
+class AdditiveCoupler(ArithmeticCoupler):
+    _op = '+'
 
 
-class MultiplicativeCoupler(Coupler):
-    def coupling_func(self):
-        return self.base * self.modifier
+class SubtractiveCoupler(ArithmeticCoupler):
+    _op = '-'
 
-    def __repr__(self):
-        return '{}({}) * {}({}) = {}'.format(
-            self.base.value,
-            self.base.name,
-            self.modifier.get_value(no_coupling=True),
-            self.modifier.name,
-            self.coupling_func(),
-            )
+
+class MultiplicativeCoupler(ArithmeticCoupler):
+    _op = '*'
+
 
 # =============================================================================
 # =============================================================================
@@ -108,7 +96,7 @@ class MultiplicativeCoupler(Coupler):
 
 
 class IParameter:
-    def __init__(self, name, value=1., bounds=None, fit=False, coupler=None,
+    def __init__(self, name, value=None, bounds=None, fit=False, coupler=None,
                  bounds_are_relative=False):
         self.name = name
         self._raw_val = value
@@ -159,17 +147,26 @@ class Parameter(IParameter, Parameter_Compatability_mixin):
     bounds_are_relative -- Bool
         As explained under bounds
     """
-    def __add__(self, other):
-        return self.coupler.coupling_func() + other._raw_val
-
-    def __sub__(self, other):
-        return self.coupler.coupling_func() - other._raw_val
-
-    def __mul__(self, other):
-        return self.coupler.coupling_func() * other._raw_val
-
     def __call__(self):
         return self.value
+
+    def set_value(self, value):
+        self._raw_val = value
+
+    @property
+    def value(self):
+        logger.debug('calling Parameter.value')
+        return self.coupler.value
+
+    @value.setter
+    def value(self, attr):
+        self._raw_val = attr
+
+    def get_value(self, no_coupling=False):
+        if no_coupling:
+            return self._raw_val
+        else:
+            return self.coupler.coupling_func()
 
     @property
     def bounds(self):
@@ -186,26 +183,80 @@ class Parameter(IParameter, Parameter_Compatability_mixin):
     def raw_bounds(self):
         return self.bounds
 
-    def get_value(self, no_coupling=False):
-        if no_coupling:
-            return self._raw_val
-        else:
-            return self.coupler.coupling_func()
-
-    def set_value(self, value):
-        self._raw_val = value
-
-    @property
-    def value(self):
-        return self.coupler.value
-
-    @value.setter
-    def value(self, attr):
-        self._raw_val = attr
-
     def update(self, value):
         self._raw_val = value
 
     def to_contr(self, controller):
         controller.add_parameters(self)
         return self
+
+
+class ComplexParameter(Parameter):
+
+    def __init__(self, name, real_part, imag_part=None):
+        super().__init__(name)
+        self.real = real_part
+        self.imag = imag_part or Parameter(name='imag', value=0.)
+
+    @property
+    def value(self):
+        return self.real.value + 1J * self.imag.value
+
+    def set_value(self, complex_value):
+        self.real.value = complex_value.real
+        self.imag.value = complex_value.imag
+
+
+class ScatteringFactorParameter(Parameter):
+    """
+    Construct of 2 to 4 Parameter instances representing real- and imaginary-,
+    charge- and magnetic- parts of a scattering element.
+
+    Keyword argument:
+    name -- str
+        identifier
+    f_charge_real -- instance of Parameter class
+        Real part of the charge component of the scattering factor
+    f_charge_imag -- instance of Parameter class
+        Imaginary part of the charge component of the scattering factor
+    f_magn_real -- instance of Parameter class
+        Real part of magnetic contribution to scattering factor
+    f_magn_imag -- instance of Parameter class
+        Imaginary part of magnetic contribution to scattering factor
+    return_mode -- str, one of 'full', 'charge', 'magn', '+', '-'
+        Indicates return mode of the scattering factor. Might be only charge,
+        only magnetic, or adding or subtracting the magnetic contribution,
+    """
+    def __init__(self, name,
+                 f_charge_real, f_charge_imag,
+                 f_magn_real=None, f_magn_imag=None,
+                 return_mode='full'):
+        super().__init__(name)
+        self.f_ch_r = f_charge_real
+        self.f_ch_i = f_charge_imag
+        self.f_m_r = f_magn_real or Parameter('f_mag', 0.)
+        self.f_m_i = f_magn_imag or Parameter('f_mag', 0.)
+
+        self.return_mode = return_mode
+
+    def set_return_mode(self, return_mode):
+        self.return_mode = return_mode
+
+    @property
+    def value(self):
+        logger.debug(f'Calling ScatteringFactorPara: mode={self.return_mode}')
+        if self.return_mode == 'full':
+            return self.f_ch_r()+self.f_m_r() + 1j*(self.f_ch_i()+self.f_m_i())
+        elif self.return_mode in ['charge', 'c']:
+            return self.f_ch_r() + 1j * self.f_ch_i()
+        elif self.return_mode in ['magn', 'mag', 'magnetic', 'm']:
+            return self.f_m_r() + 1j * self.f_m_i()
+        elif self.return_mode in ['+', 'plus']:
+            return self.f_ch_r()+self.f_m_r() + 1j*(self.f_ch_i()+self.f_m_i())
+        elif self.return_mode in ['-', 'minus']:
+            return self.f_ch_r()-self.f_m_r() + 1j*(self.f_ch_i()-self.f_m_i())
+        else:
+            raise NameError('ScatteringFactorParameter return mode unknown.')
+
+    def get_value(self):
+        return self.value

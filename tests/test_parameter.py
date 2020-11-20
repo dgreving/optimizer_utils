@@ -2,8 +2,13 @@ import pytest
 import logging
 import sys
 
+import xray_diffraction.datastructures.parameter as parameter
+
 from xray_diffraction.datastructures.parameter import Parameter
+from xray_diffraction.datastructures.parameter import ComplexParameter
 from xray_diffraction.datastructures.parameter import IdentityCoupler
+
+from xray_diffraction.datastructures import parameter_exceptions as exc
 
 
 class TestCoupler:
@@ -23,26 +28,33 @@ class TestCoupler:
         captured = capsys.readouterr()
         assert captured.out.startswith('Deprecation Warning!')
 
-    def test_AdditiveCoupler(self):
-        from xray_diffraction.datastructures.parameter import AdditiveCoupler
+    def test_ArithmeticCoupler(self):
         base = Parameter(name='base', value=10)
         modifier = Parameter(name='modifier', value=5)
-        coupler = AdditiveCoupler(base=base, modifier=modifier)
+        coupler = parameter.ArithmeticCoupler(base=base, modifier=modifier)
+        coupler._op = '+'
         assert coupler.value == 15
 
-    def test_SubstractiveCoupler(self):
-        from xray_diffraction.datastructures.parameter import SubtractiveCoupler
+    @pytest.mark.parametrize(
+        'coupler,expected',
+        [
+            (parameter.AdditiveCoupler, 17),
+            (parameter.SubtractiveCoupler, 3),
+            (parameter.MultiplicativeCoupler, 100),
+        ])
+    def test_ArithmeticCoupling(self, coupler, expected):
         base = Parameter(name='base', value=10)
-        modifier = Parameter(name='modifier', value=5)
-        coupler = SubtractiveCoupler(base=base, modifier=modifier)
-        assert coupler.value == 5
-        base = Parameter(name='base', value=10)
-        coupled = Parameter(
-            name='modifier',
+        firstmod = Parameter(
+            name='first_modifier',
             value=5,
-            coupler=SubtractiveCoupler(base),
+            coupler=coupler(base),
             )
-        assert coupled.value == 5
+        secondmod = Parameter(
+            name='second_modifier',
+            value=2,
+            coupler=coupler(firstmod),
+            )
+        assert secondmod.value == expected
 
 
 class TestInterface:
@@ -115,3 +127,29 @@ class TestInterface:
             'Fit: False\t'
             'Coupling: class IdentityCoupler, value: 1'
             )
+
+
+class TestComplexParameter:
+    def test_is_parameter(self):
+        real, imag = Parameter('first', 1), Parameter('second', 2)
+        cp = ComplexParameter('complex', real, imag)
+        assert isinstance(cp, Parameter)
+
+    def test_is_complex(self):
+        real, imag = Parameter('first', 1), Parameter('second', 2)
+        cp = ComplexParameter('complex', real, imag)
+        assert isinstance(cp.value, complex)
+
+    def test_setting_values_works(self):
+        real = Parameter('first', 1)
+        imag = Parameter(
+            'second',
+            3,
+            coupler=parameter.AdditiveCoupler(base=real),
+            )
+        cp = ComplexParameter('complex', real, imag)
+        assert cp.value = 1 + (1+3)*J
+        cp.set_value(100 + 101J)
+        assert cp.value == 100 + 101J
+        assert
+
