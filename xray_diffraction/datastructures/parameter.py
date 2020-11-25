@@ -1,8 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
 
-from .compatability import Parameter_Compatability_mixin
-
 from .coupler import IdentityCoupler
 
 from . import parameter_exceptions as exc
@@ -15,16 +13,38 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 
-class IParameter:
+class IParameter(ABC):
     def __init__(self, name, value=None, bounds=None, fit=False, coupler=None,
                  bounds_are_relative=False):
         self.name = name
         self._raw_val = value
-        self.bounds_are_relative = bounds_are_relative
         self._bounds = bounds
+        self.bounds_are_relative = bounds_are_relative
         self.fit = fit
         self.coupler = coupler or IdentityCoupler(modifier=self)
         self.coupler.couple(self)
+
+    @property
+    @abstractmethod
+    def value(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def set_value(self, value):
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_value(self):
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def bounds(self):
+        raise NotImplementedError
+
+    def to_contr(self, controller):
+        controller.add_parameters(self)
+        return self
 
     def _textify(self):
         name = 'Name: "{}"'.format(self.name)
@@ -45,14 +65,14 @@ class IParameter:
         return 'class: {}, {}'.format(self.__class__.__name__, text)
 
 
-class Parameter(IParameter, Parameter_Compatability_mixin):
+class Parameter(IParameter):
     """
     Basic building block of object oriented parameter treatment.
 
     Keyword arguments:
     name -- str
         Works as identifier
-    value -- numerical
+    value -- float
         Provides the raw value of the Parameter, which might be modifying an
         underlying base Parameter.
     bounds -- tuple
@@ -67,22 +87,25 @@ class Parameter(IParameter, Parameter_Compatability_mixin):
     bounds_are_relative -- Bool
         As explained under bounds
     """
-    def __call__(self):
-        return self.value
-
-    def set_value(self, value):
-        self._raw_val = value
 
     @property
     def value(self):
         logger.debug('calling Parameter.value')
         return self.coupler.value
 
-    @value.setter
-    def value(self, attr):
-        self._raw_val = attr
+    def set_value(self, value):
+        """
+        Sets value of parameter.
+        If parameter is coupled, sets only the raw value, i.e. modifier value
+        NOT the coupled value as obtained from calling Parameter.get_value()
+        """
+        self._raw_val = value
 
     def get_value(self, no_coupling=False):
+        """
+        Return parameter value
+        If parameter is coupled and no_coupling == True, return uncoupled value
+        """
         if no_coupling:
             return self._raw_val
         else:
@@ -99,19 +122,13 @@ class Parameter(IParameter, Parameter_Compatability_mixin):
     def bounds(self, new_bounds):
         self.bounds = new_bounds
 
-    @property
-    def raw_bounds(self):
-        return self.bounds
-
-    def update(self, value):
-        self._raw_val = value
-
-    def to_contr(self, controller):
-        controller.add_parameters(self)
-        return self
-
 
 class ComplexParameter(Parameter):
+    """
+    Composite object of two Parameter instances, each representing real and
+    imaginary part of a complex number.
+    All interaction should be limited to real- and imag-attributes
+    """
 
     def __init__(self, name, real_part, imag_part=None):
         super().__init__(name)
@@ -122,9 +139,22 @@ class ComplexParameter(Parameter):
     def value(self):
         return self.real.value + 1J * self.imag.value
 
-    def set_value(self, complex_value):
-        self.real.value = complex_value.real
-        self.imag.value = complex_value.imag
+    def set_value(self, value):
+        raise TypeError(
+            'Use set_value() method of attributes "real" and "imag" '
+            'instead of ComplexParameter.')
+
+    def get_value(self, no_coupling=False):
+        if no_coupling:
+            return self.coupler.coupling_func()
+        else:
+            return self.real._raw_val + 1J * self.imag._raw_val
+
+    def bounds(self):
+        raise TypeError(
+            'Use "bounds" attribute of "real" and "imag" attributes of '
+            'ComplexParameter instance.'
+            )
 
 
 class ScatteringFactorParameter(Parameter):

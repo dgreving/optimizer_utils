@@ -58,7 +58,7 @@ class TestCoupler:
         assert secondmod.value == expected
 
 
-class TestInterface:
+class TestParameter:
     @pytest.mark.parametrize(
         'attr',
         ['name', 'value', 'bounds', 'fit', 'coupler', 'bounds_are_relative'])
@@ -75,7 +75,7 @@ class TestInterface:
     def test_get_and_set_value_uncoupled(self):
         p = Parameter(name='', value=50)
         assert p.value == 50
-        p.value = 150
+        p.set_value(150)
         assert p.value == 150
 
     @pytest.mark.parametrize(
@@ -150,7 +150,8 @@ class TestComplexParameter:
             )
         cp = ComplexParameter('complex', real, imag)
         assert cp.value == 1 + (1+3)*1J
-        cp.set_value(100 + 101J)
-        assert cp.value == 100 + 101J
+        imag.set_value(1000)
+        real.set_value(42)
+        assert cp.value == 42 + (1000+42)*1J
 
 
