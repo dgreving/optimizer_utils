@@ -3,6 +3,7 @@ import logging
 import sys
 
 import xray_diffraction.datastructures.parameter as parameter
+import xray_diffraction.datastructures.coupler as _coupler
 
 from xray_diffraction.datastructures.parameter import Parameter
 from xray_diffraction.datastructures.parameter import ComplexParameter
@@ -31,16 +32,16 @@ class TestCoupler:
     def test_ArithmeticCoupler(self):
         base = Parameter(name='base', value=10)
         modifier = Parameter(name='modifier', value=5)
-        coupler = parameter.ArithmeticCoupler(base=base, modifier=modifier)
+        coupler = _coupler.ArithmeticCoupler(base=base, modifier=modifier)
         coupler._op = '+'
         assert coupler.value == 15
 
     @pytest.mark.parametrize(
         'coupler,expected',
         [
-            (parameter.AdditiveCoupler, 17),
-            (parameter.SubtractiveCoupler, 3),
-            (parameter.MultiplicativeCoupler, 100),
+            (_coupler.AdditiveCoupler, 17),
+            (_coupler.SubtractiveCoupler, 3),
+            (_coupler.MultiplicativeCoupler, 100),
         ])
     def test_ArithmeticCoupling(self, coupler, expected):
         base = Parameter(name='base', value=10)
@@ -145,7 +146,7 @@ class TestComplexParameter:
         imag = Parameter(
             'second',
             3,
-            coupler=parameter.AdditiveCoupler(base=real),
+            coupler=_coupler.AdditiveCoupler(base=real),
             )
         cp = ComplexParameter('complex', real, imag)
         assert cp.value == 1 + (1+3)*1J
