@@ -12,30 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 
-class ParameterGroup(object):
-    """
-    Turns a set of ordered parameters into an iterable (list)
 
-    Keyword arguments:
-    group_name -- string
-        Name of the group
-    *parameters -- Parameter instances
-        Parameters to join the group in the given order
-    """
-    def __init__(self, group_name, *parameters):
-        self.name = group_name
-        self.group = [p for p in parameters]
-        self.fit = None
-
-    @property
-    def value(self):
-        return [p.value for p in self.group]
-
-    def __repr__(self):
-        name = 'Name: {}(ParameterGroup)'.format(self.name)
-        return " ".join([name] + [str(p.value) for p in self.group])
-        # return " ".join(['Name: {}'.format(self.__class__.__name__)]
-        #                 + [str(p.value) for p in self.group])
 
 
 class ParameterControllerExtension:

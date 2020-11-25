@@ -2,15 +2,18 @@ import pytest
 import logging
 import sys
 
-import xray_diffraction.datastructures.parameter as parameter
 import xray_diffraction.datastructures.coupler as _coupler
 
 from xray_diffraction.datastructures.parameter import IdentityCoupler
 from xray_diffraction.datastructures.parameter import Parameter
 from xray_diffraction.datastructures.parameter import ComplexParameter
 from xray_diffraction.datastructures.parameter import ScatteringFactorParameter
+from xray_diffraction.datastructures.parameter import ParameterGroup
 
-from xray_diffraction.datastructures import parameter_exceptions as exc
+
+# =============================================================================
+# =============================================================================
+# =============================================================================
 
 
 class TestCoupler:
@@ -53,6 +56,11 @@ class TestCoupler:
             coupler=coupler(firstmod),
             )
         assert secondmod.value == expected
+
+
+# =============================================================================
+# =============================================================================
+# =============================================================================
 
 
 class TestParameter:
@@ -99,9 +107,21 @@ class TestParameter:
         p1.fit = False
         assert not p1.fit
 
-    @pytest.mark.skip
-    def test_get_and_set_coupler(self):
-        pass
+    def test_get_and_set_coupled(self):
+        b = Parameter(name='base', value=1)
+        m = Parameter(
+            name='modifier',
+            value=2,
+            coupler=_coupler.AdditiveCoupler(b),
+            )
+        assert m.get_value() == 3
+        assert m.get_value(no_coupling=True) == 2
+        m.set_value(3)
+        assert m.get_value() == 4
+        assert m.get_value(no_coupling=True) == 3
+        b.set_value(5)
+        assert m.get_value() == 8
+        assert m.get_value(no_coupling=True) == 3
 
     def test_get_and_set_bounds_are_relative(self):
         p1 = Parameter(name='', bounds_are_relative=True)
@@ -127,71 +147,95 @@ class TestParameter:
             )
 
 
+# =============================================================================
+# =============================================================================
+# =============================================================================
+
+
 class TestComplexParameter:
-    def test_is_parameter(self):
-        real, imag = Parameter('first', 1), Parameter('second', 2)
-        cp = ComplexParameter('complex', real, imag)
-        assert isinstance(cp, Parameter)
+    @pytest.fixture
+    def uncoupled(self):
+        A, B = Parameter('real', 1), Parameter('imag', 2)
+        C = ComplexParameter('complex', A, B)
+        return A, B, C
 
-    def test_is_complex(self):
-        real, imag = Parameter('first', 1), Parameter('second', 2)
-        cp = ComplexParameter('complex', real, imag)
-        assert isinstance(cp.value, complex)
+    @pytest.fixture
+    def coupled(self):
+        A = Parameter('base', 1)
+        B = Parameter('modifier', 2, coupler=_coupler.AdditiveCoupler(A))
+        C = ComplexParameter('complex', A, B)
+        return A, B, C
 
-    def test_setting_values_works(self):
-        real = Parameter('first', 1)
-        imag = Parameter(
-            'second',
-            3,
-            coupler=_coupler.AdditiveCoupler(base=real),
-            )
-        cp = ComplexParameter('complex', real, imag)
-        assert cp.value == 1 + (1+3)*1J
-        imag.set_value(1000)
-        real.set_value(42)
-        assert cp.value == 42 + (1000+42)*1J
+    def test_is_parameter(self, uncoupled, coupled):
+        _, _, C1 = uncoupled
+        _, _, C2 = coupled
+        assert isinstance(C1, Parameter)
+        assert isinstance(C2, Parameter)
+
+    def test_returns_complex(self, uncoupled, coupled):
+        A1, B1, C1 = uncoupled
+        A2, B2, C2 = coupled
+        assert isinstance(C1.value, complex)
+        assert isinstance(C2.value, complex)
+        assert C1.value == A1.value + B1.value*1J
+        assert C2.value == A2.value + B2.value*1J
+
+    def test_get_value(self, coupled):
+        A, B, C = coupled
+        assert A.get_value() == 1
+        assert B.get_value() == (1 + 2)
+        assert C.get_value() == 1 + (1 + 2)*1J
+        assert C.get_value(no_coupling=True) == 1 + 2J
+
+    def test_setting_values_works(self, coupled):
+        A, B, C = coupled
+        assert C.value == 1 + (1+2)*1J
+        B.set_value(1000)
+        A.set_value(42)
+        assert C.value == 42 + (1000+42)*1J
+        with pytest.raises(TypeError):
+            C.set_value(42 + 1042J)
+
+    def test_bounds(self, uncoupled):
+        _, _, C = uncoupled
+        with pytest.raises(TypeError):
+            C.bounds()
+
+
+# =============================================================================
+# =============================================================================
+# =============================================================================
 
 
 class TestScatteringFactorParameter:
 
     @pytest.fixture(scope='function')
-    def real_p(self):
-        return Parameter('real', 1)
-
-    @pytest.fixture(scope='function')
-    def imag_p(self):
-        return Parameter('imag', 2)
-
-    @pytest.fixture(scope='function')
-    def real_mag_p(self):
-        return Parameter('real_mag', 3)
-
-    @pytest.fixture(scope='function')
-    def imag_mag_p(self):
-        return Parameter('imag_mag', 4)
-
-    @pytest.fixture(scope='function')
     def parameters(self):
-        real, imag = Parameter('real', 1), Parameter('imag', 2)
-        real_mag, imag_mag = Parameter('real_mag', 3), Parameter('imag_mag', 4)
+        real, imag = Parameter('real', 1), Parameter('imag', 3)
+        real_mag = Parameter('real_mag', 2)
+        imag_mag = Parameter(
+            name='imag_mag',
+            value=4,
+            coupler=_coupler.AdditiveCoupler(real_mag),
+            )
         scatt_p = ScatteringFactorParameter(
-            'scatt_fac_para', real, imag, real_mag, imag_mag)
+            'scatt_fac_para', real, imag, real_mag, imag_mag,
+            )
         return real, imag, real_mag, imag_mag, scatt_p
 
-    def test_is_parameter(self, real_p, imag_p, real_mag_p, imag_mag_p):
-        scatt_p = ScatteringFactorParameter(
-            'scatt_fac_para', real_p, imag_p, real_mag_p, imag_mag_p)
+    def test_is_parameter(self, parameters):
+        scatt_p = parameters[-1]
         assert isinstance(scatt_p, Parameter)
 
     def test_returns_complex_value(self, parameters):
-        real, imag, real_mag, imag_mag, scatt_p = parameters
+        scatt_p = parameters[-1]
         assert isinstance(scatt_p.value, complex)
-        assert scatt_p.value == (1 + 3) + (2 + 4)*1J
+        assert scatt_p.value == (1 + 2) + (3 + (4 + 2))*1J  # note coupling
 
     def test_sensitive_to_para_modification(self, parameters):
         real, imag, real_mag, imag_mag, scatt_p = parameters
         real.set_value(100)
-        assert scatt_p.value == (100 + 3) + (2 + 4)*1J
+        assert scatt_p.value == (100 + 2) + (3 + (4 + 2))*1J  # note coupling
 
     def test_return_modes(self, parameters):
         scatt_p = parameters[-1]
@@ -199,17 +243,60 @@ class TestScatteringFactorParameter:
         assert scatt_p.return_mode == 'full'
         # test return_mode 'full'
         scatt_p.return_mode = 'full'
-        assert scatt_p.value == (1 + 3) + (2 + 4)*1J
+        assert scatt_p.value == (1 + 2) + (3 + 6)*1J
         # test return_mode charge, only non-magnetic contributions
         scatt_p.return_mode = 'charge'
-        assert scatt_p.value == (1 + 0) + (2 + 0)*1J
+        assert scatt_p.value == (1 + 0) + (3 + 0)*1J
         # test return_mode magn, only magnetic contributions considered
         scatt_p.return_mode = 'magn'
-        assert scatt_p.value == (0 + 3) + (0 + 4)*1J
+        assert scatt_p.value == (0 + 2) + (0 + 6)*1J
         # test return_mode '+', magnetism contributes positively
         scatt_p.return_mode = '+'
-        assert scatt_p.value == (1 + 3) + (2 + 4)*1J
+        assert scatt_p.value == (1 + 2) + (3 + 6)*1J
         # test return mode '-', magnetism contributes negatively
         scatt_p.return_mode = '-'
-        assert scatt_p.value == (1 - 3) + (2 - 4)*1J
+        assert scatt_p.value == (1 - 2) + (3 - 6)*1J
 
+
+# =============================================================================
+# =============================================================================
+# =============================================================================
+
+
+class TestParameterGroup:
+    @pytest.fixture
+    def parameters(self):
+        p1, p2, p3 = Parameter('p1', 1), Parameter('p2', 2), Parameter('p3', 3)
+        p4 = Parameter('p4', value=4, coupler=_coupler.AdditiveCoupler(p3))
+        group = ParameterGroup('groupName', p1, p2, p3, p4)
+        return p1, p2, p3, p4, group
+
+    def test_value(self, parameters):
+        group = parameters[-1]
+        expected = [1, 2, 3, 3+4]
+        assert all(x == y for x, y in zip(group.value, expected))
+
+    def test_get_value(self, parameters):
+        group = parameters[-1]
+        expected_coupled = [1, 2, 3, 3+4]
+        expected_uncoupled = [1, 2, 3, 4]
+        assert all(x == y for x, y in zip(group.get_value(), expected_coupled))
+        assert all(
+            x == y
+            for x, y
+            in zip(group.get_value(no_coupling=True), expected_uncoupled)
+            )
+
+    def test_set_value(self, parameters):
+        p1, p2, p3, p4, group = parameters
+        with pytest.raises(TypeError):
+            group.set_value([4, 5, 6, 7])
+        p1.set_value(2)
+        p3.set_value(55)
+        expected = [2, 2, 55, 55+4]
+        assert all(x == y for x, y in zip(group.value, expected))
+
+    def test_bounds(self, parameters):
+        group = parameters[-1]
+        with pytest.raises(TypeError):
+            group.bounds

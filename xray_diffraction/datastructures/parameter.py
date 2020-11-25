@@ -3,8 +3,6 @@ from abc import ABC, abstractmethod
 
 from .coupler import IdentityCoupler
 
-from . import parameter_exceptions as exc
-
 logger = logging.getLogger(__name__)
 
 
@@ -109,7 +107,7 @@ class Parameter(IParameter):
         if no_coupling:
             return self._raw_val
         else:
-            return self.coupler.coupling_func()
+            return self.value
 
     @property
     def bounds(self):
@@ -146,10 +144,11 @@ class ComplexParameter(Parameter):
 
     def get_value(self, no_coupling=False):
         if no_coupling:
-            return self.coupler.coupling_func()
-        else:
             return self.real._raw_val + 1J * self.imag._raw_val
+        else:
+            return self.value
 
+    @property
     def bounds(self):
         raise TypeError(
             'Use "bounds" attribute of "real" and "imag" attributes of '
@@ -218,3 +217,45 @@ class ScatteringFactorParameter(Parameter):
 
     def get_value(self):
         return self.value
+
+
+class ParameterGroup(Parameter):
+    """
+    Turns a set of ordered parameters into an iterable (list)
+
+    Keyword arguments:
+    group_name -- string
+        Name of the group
+    *parameters -- Parameter instances
+        Parameters to join the group in the given order
+    """
+    def __init__(self, group_name, *parameters):
+        self.name = group_name
+        self.group = [p for p in parameters]
+        self.fit = None
+
+    @property
+    def value(self):
+        return [p.value for p in self.group]
+
+    def set_value(self, value):
+        raise TypeError(
+            'Use set_value() method of constituent parameters '
+            'instead of ParameterGroup instance.')
+
+    def get_value(self, no_coupling=False):
+        if no_coupling:
+            return [p._raw_val for p in self.group]
+        else:
+            return self.value
+
+    @property
+    def bounds(self):
+        raise TypeError(
+            'Use "bounds" attribute of constituent parameters '
+            'instead of ParameterGroup instance.'
+            )
+
+    def __repr__(self):
+        name = 'Name: {}(ParameterGroup)'.format(self.name)
+        return " ".join([name] + [str(p.value) for p in self.group])
