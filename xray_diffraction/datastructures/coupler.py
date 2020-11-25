@@ -1,13 +1,11 @@
 from abc import ABC, abstractmethod
 import logging
 
-from .compatability import Coupler_compatability_mixin
-
 
 logger = logging.getLogger(__name__)
 
 
-class Coupler(ABC, Coupler_compatability_mixin):
+class Coupler(ABC):
     def __init__(self, base=None, modifier=None, **kwargs):
         """
         Coupler class, which is initialised with an instance of a base

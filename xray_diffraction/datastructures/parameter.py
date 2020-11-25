@@ -196,15 +196,23 @@ class ScatteringFactorParameter(Parameter):
     def value(self):
         logger.debug(f'Calling ScatteringFactorPara: mode={self.return_mode}')
         if self.return_mode == 'full':
-            return self.f_ch_r()+self.f_m_r() + 1j*(self.f_ch_i()+self.f_m_i())
+            return self.f_ch_r.value + self.f_m_r.value \
+                + 1J * (self.f_ch_i.value + self.f_m_i.value)
+
         elif self.return_mode in ['charge', 'c']:
-            return self.f_ch_r() + 1j * self.f_ch_i()
+            return self.f_ch_r.value + 1J * self.f_ch_i.value
+
         elif self.return_mode in ['magn', 'mag', 'magnetic', 'm']:
-            return self.f_m_r() + 1j * self.f_m_i()
+            return self.f_m_r.value + 1J * self.f_m_i.value
+
         elif self.return_mode in ['+', 'plus']:
-            return self.f_ch_r()+self.f_m_r() + 1j*(self.f_ch_i()+self.f_m_i())
+            return (self.f_ch_r.value + self.f_m_r.value) \
+                + (self.f_ch_i.value + self.f_m_i.value) * 1J
+
         elif self.return_mode in ['-', 'minus']:
-            return self.f_ch_r()-self.f_m_r() + 1j*(self.f_ch_i()-self.f_m_i())
+            return (self.f_ch_r.value - self.f_m_r.value) \
+                + (self.f_ch_i.value - self.f_m_i.value) * 1J
+
         else:
             raise NameError('ScatteringFactorParameter return mode unknown.')
 
