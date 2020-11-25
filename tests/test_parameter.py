@@ -148,8 +148,8 @@ class TestComplexParameter:
             coupler=parameter.AdditiveCoupler(base=real),
             )
         cp = ComplexParameter('complex', real, imag)
-        assert cp.value = 1 + (1+3)*J
+        assert cp.value == 1 + (1+3)*1J
         cp.set_value(100 + 101J)
         assert cp.value == 100 + 101J
-        assert
+
 
