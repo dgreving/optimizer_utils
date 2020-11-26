@@ -4,7 +4,7 @@ import sys
 
 import xray_diffraction.datastructures.coupler as _coupler
 
-from xray_diffraction.datastructures.parameter import IdentityCoupler
+from xray_diffraction.datastructures.parameter import IParameter
 from xray_diffraction.datastructures.parameter import Parameter
 from xray_diffraction.datastructures.parameter import ComplexParameter
 from xray_diffraction.datastructures.parameter import ScatteringFactorParameter
@@ -23,7 +23,7 @@ class TestCoupler:
         logger.addHandler(streamhandler)
 
         p = Parameter(name='')
-        coupler = IdentityCoupler()
+        coupler = _coupler.IdentityCoupler()
         coupler.couple(p)
 
         captured = capsys.readouterr()
@@ -256,6 +256,9 @@ class TestScatteringFactorParameter:
         # test return mode '-', magnetism contributes negatively
         scatt_p.return_mode = '-'
         assert scatt_p.value == (1 - 2) + (3 - 6)*1J
+        scatt_p.return_mode = 'unknown_mode'
+        with pytest.raises(NameError):
+            scatt_p.value
 
 
 # =============================================================================
