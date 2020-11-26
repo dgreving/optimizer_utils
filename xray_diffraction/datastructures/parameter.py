@@ -1,7 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 
-from .coupler import IdentityCoupler
+from .coupler import IdentityCoupler, coupler_map
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,13 @@ class IParameter(ABC):
         self._bounds = bounds
         self.bounds_are_relative = bounds_are_relative
         self.fit = fit
-        self.coupler = coupler or IdentityCoupler(modifier=self)
+        if type(coupler) == tuple:
+            identifier, base = coupler
+            print('HERE: ', identifier, base)
+            _coupler = coupler_map[identifier]
+            self.coupler = _coupler(base)
+        else:
+            self.coupler = coupler or IdentityCoupler(modifier=self)
         self.coupler.couple(self)
 
     @property

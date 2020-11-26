@@ -84,3 +84,10 @@ class SubtractiveCoupler(ArithmeticCoupler):
 
 class MultiplicativeCoupler(ArithmeticCoupler):
     _op = '*'
+
+
+coupler_map = {
+    'additive': AdditiveCoupler,
+    'subtractive': SubtractiveCoupler,
+    'multiplicative': MultiplicativeCoupler,
+}
