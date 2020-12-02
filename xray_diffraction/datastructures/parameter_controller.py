@@ -25,7 +25,7 @@ class ParameterController():
 
     def _suffixed_name(self, parameter):
         name, suffix = parameter.name.split('__')
-        if
+        pass
 
     def _unsuffixed_name(self, parameter):
         pass

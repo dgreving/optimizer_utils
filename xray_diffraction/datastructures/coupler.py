@@ -21,12 +21,29 @@ class Coupler(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def __repr__():
+    def __repr__(self):
         raise NotImplementedError
 
     def couple(self, modifier):
         """Set modifier instance of Parameter class"""
         self.modifier = modifier
+
+
+class NoCoupler(Coupler):
+    def coupling_func(self):
+        msg = (
+            'Deprecation Warning! '
+            'Do not use method "coupling_func" on Coupler. '
+            'Instead use property "value"')
+        logger.warning(msg)
+        return self.value
+
+    @property
+    def value(self):
+        return self.modifier.get_value(no_coupling=True)
+
+    def __repr__(self):
+        return f'class IdentityCoupler, value: {self.modifier.value}'
 
 
 class IdentityCoupler(Coupler):
@@ -44,10 +61,10 @@ class IdentityCoupler(Coupler):
 
     @property
     def value(self):
-        return self.modifier.get_value(no_coupling=True)
+        return self.base.get_value()
 
     def __repr__(self):
-        return f'class IdentityCoupler, value: {self.modifier.value}'
+        return f'class IdentityCoupler, value: {self.value}'
 
 
 class ArithmeticCoupler(Coupler):
@@ -90,4 +107,5 @@ coupler_map = {
     'additive': AdditiveCoupler,
     'subtractive': SubtractiveCoupler,
     'multiplicative': MultiplicativeCoupler,
+    'identical': IdentityCoupler,
 }

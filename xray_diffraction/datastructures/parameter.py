@@ -1,7 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 
-from .coupler import IdentityCoupler, coupler_map
+from .coupler import NoCoupler, coupler_map
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +89,7 @@ class Parameter(IParameter):
             _coupler = coupler_map[identifier]
             self.coupler = _coupler(base)
         else:
-            self.coupler = coupler or IdentityCoupler(modifier=self)
+            self.coupler = coupler or NoCoupler(modifier=self)
         self.coupler.couple(self)
 
     @property

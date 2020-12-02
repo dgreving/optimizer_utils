@@ -17,17 +17,25 @@ from xray_diffraction.datastructures.parameter import ParameterGroup
 
 
 class TestCoupler:
-    def test_Identity_Coupler(self, capsys):
+    def test_NoCoupler(self, capsys):
         from xray_diffraction.datastructures.compatability import logger
         streamhandler = logging.StreamHandler(sys.stdout)
         logger.addHandler(streamhandler)
 
         p = Parameter(name='')
-        coupler = _coupler.IdentityCoupler()
+        coupler = _coupler.NoCoupler()
         coupler.couple(p)
 
         captured = capsys.readouterr()
         assert captured.out == ''
+
+    def test_IdentityCoupler(self):
+        from xray_diffraction.datastructures.coupler import IdentityCoupler
+        plain = Parameter(name='plain', value=42)
+        coupled = Parameter(name='coupled', value=10, coupler=('additive', plain))
+        identical = Parameter(name='coupled', coupler=IdentityCoupler(coupled))
+        assert coupled.value == 52
+        assert identical.value == 52
 
     def test_ArithmeticCoupler(self):
         base = Parameter(name='base', value=10)
@@ -57,6 +65,13 @@ class TestCoupler:
             )
         assert secondmod.value == expected
 
+    def test_identical_coupling(self):
+        plain = Parameter(name='plain', value=42)
+        coupled = Parameter(
+            name='coupled', value=10, coupler=('subtractive', plain)
+        )
+        identical = Parameter(name='identical', coupler=('identical', coupled))
+        assert identical.value == 32
 
 # =============================================================================
 # =============================================================================
