@@ -12,22 +12,6 @@ logger = logging.getLogger(__name__)
 
 
 class IParameter(ABC):
-    def __init__(self, name, value=None, bounds=None, fit=False, coupler=None,
-                 bounds_are_relative=False):
-        self.name = name
-        self._raw_val = value
-        self._bounds = bounds
-        self.bounds_are_relative = bounds_are_relative
-        self.fit = fit
-        if type(coupler) == tuple:
-            identifier, base = coupler
-            print('HERE: ', identifier, base)
-            _coupler = coupler_map[identifier]
-            self.coupler = _coupler(base)
-        else:
-            self.coupler = coupler or IdentityCoupler(modifier=self)
-        self.coupler.couple(self)
-
     @property
     @abstractmethod
     def value(self):
@@ -74,6 +58,7 @@ class Parameter(IParameter):
     Basic building block of object oriented parameter treatment.
 
     Keyword arguments:
+
     name -- str
         Works as identifier
     value -- float
@@ -91,6 +76,21 @@ class Parameter(IParameter):
     bounds_are_relative -- Bool
         As explained under bounds
     """
+
+    def __init__(self, name, value=None, bounds=None, fit=False, coupler=None,
+                 bounds_are_relative=False):
+        self.name = name
+        self._raw_val = value
+        self._bounds = bounds
+        self.bounds_are_relative = bounds_are_relative
+        self.fit = fit
+        if type(coupler) == tuple:
+            identifier, base = coupler
+            _coupler = coupler_map[identifier]
+            self.coupler = _coupler(base)
+        else:
+            self.coupler = coupler or IdentityCoupler(modifier=self)
+        self.coupler.couple(self)
 
     @property
     def value(self):
@@ -120,7 +120,7 @@ class Parameter(IParameter):
         if not self.bounds_are_relative:
             return self._bounds
         else:
-            return (self._bounds[0] * self.value, self._bounds[1] * self.value)
+            return self._bounds[0] * self.value, self._bounds[1] * self.value
 
     @bounds.setter
     def bounds(self, new_bounds):

@@ -6,9 +6,7 @@ from xray_diffraction.datastructures.parameter import Parameter
 
 @enable_parameters
 def rnd_func(a, b):
-    """
-    rnd_func docstring
-    """
+    """rnd_func docstring"""
     return a, b
 
 
@@ -27,14 +25,12 @@ class Test_enable_parameters:
         _float, p1 = 42., Parameter('first', 1)
         p2 = Parameter('second', 2, coupler=('additive', p1))
         args = rnd_func_2(*[_float, p1, p2])
-        expected = [42., 1, 1+2]
+        expected = (42., 1, 1+2)
         assert all(x == e for x, e in zip(args, expected))
 
-    def test__doc__(self):
-        rnd_func(1, 2)
-        # print(help(rnd_func))
-        print(rnd_func.__doc__, rnd_func.__name__)
-        rnd_func()
-        rnd_func_2()
+    def test_name_and_doc_is_kept(self):
+        assert rnd_func.__name__.strip() == 'rnd_func'
+        assert rnd_func.__doc__ == 'rnd_func docstring'
+
 
 help(rnd_func)
