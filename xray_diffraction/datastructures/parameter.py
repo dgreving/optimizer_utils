@@ -1,7 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 
-from .coupler import NoCoupler, coupler_map
+from .coupler import NoCoupler, IdentityCoupler, coupler_map
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +127,68 @@ class Parameter(IParameter):
         self.bounds = new_bounds
 
 
+# ==============================================================================
+# ==============================================================================
+# ==============================================================================
+
+
+class ReferenceParameter(IParameter):
+    def __init__(self, name, references):
+        self.name = name
+        self.coupler = IdentityCoupler(references)
+        self.coupler.couple(self)
+        self._raw_val = None
+
+    @property
+    def value(self):
+        return self.coupler.value
+
+    def set_value(self, value):
+        msg = (
+            'Can not assign value to ReferenceParameter\n'
+            'Assign value to referenced parameter instead.'
+        )
+        raise TypeError(msg)
+
+    def get_value(self, no_coupling=False):
+        if no_coupling:
+            return self.coupler.base._raw_val
+        else:
+            return self.coupler.base.value
+
+    @property
+    def bounds(self):
+        return self.coupler.base.bounds
+
+    @bounds.setter
+    def bounds(self, bounds):
+        msg = (
+            'Can not assign to bounds attribute of ReferenceParameter.\n'
+            'Assign to "bounds" of referenced Parameter instead.'
+        )
+        raise TypeError(msg)
+
+    @property
+    def fit(self):
+        return self.coupler.base.fit
+
+    @fit.setter
+    def fit(self, value):
+        msg = (
+            'Can not assign to "fit" attribute of ReferenceParameter.\n'
+            'Assign to "fit" of referenced Parameter instead.'
+        )
+        raise TypeError(msg)
+
+    # def __repr__2(self):
+    #     return 'ReferenceParameter'
+
+
+# ==============================================================================
+# ==============================================================================
+# ==============================================================================
+
+
 class ComplexParameter(Parameter):
     """
     Composite object of two Parameter instances, each representing real and
@@ -160,6 +222,11 @@ class ComplexParameter(Parameter):
             'Use "bounds" attribute of "real" and "imag" attributes of '
             'ComplexParameter instance.'
             )
+
+
+# ==============================================================================
+# ==============================================================================
+# ==============================================================================
 
 
 class ScatteringFactorParameter(Parameter):
@@ -223,6 +290,11 @@ class ScatteringFactorParameter(Parameter):
 
     def get_value(self):
         return self.value
+
+
+# ==============================================================================
+# ==============================================================================
+# ==============================================================================
 
 
 class ParameterGroup(Parameter):

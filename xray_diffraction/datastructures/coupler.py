@@ -103,9 +103,16 @@ class MultiplicativeCoupler(ArithmeticCoupler):
     _op = '*'
 
 
+class _Couplers(dict):
+    additive = AdditiveCoupler
+    subtractive= SubtractiveCoupler
+    multiplicative = MultiplicativeCoupler
+
+
 coupler_map = {
     'additive': AdditiveCoupler,
     'subtractive': SubtractiveCoupler,
     'multiplicative': MultiplicativeCoupler,
-    'identical': IdentityCoupler,
 }
+
+coupler_map = _Couplers(coupler_map)

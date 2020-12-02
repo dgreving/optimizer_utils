@@ -6,6 +6,7 @@ import xray_diffraction.datastructures.coupler as _coupler
 
 from xray_diffraction.datastructures.parameter import IParameter
 from xray_diffraction.datastructures.parameter import Parameter
+from xray_diffraction.datastructures.parameter import ReferenceParameter
 from xray_diffraction.datastructures.parameter import ComplexParameter
 from xray_diffraction.datastructures.parameter import ScatteringFactorParameter
 from xray_diffraction.datastructures.parameter import ParameterGroup
@@ -65,13 +66,6 @@ class TestCoupler:
             )
         assert secondmod.value == expected
 
-    def test_identical_coupling(self):
-        plain = Parameter(name='plain', value=42)
-        coupled = Parameter(
-            name='coupled', value=10, coupler=('subtractive', plain)
-        )
-        identical = Parameter(name='identical', coupler=('identical', coupled))
-        assert identical.value == 32
 
 # =============================================================================
 # =============================================================================
@@ -167,54 +161,94 @@ class TestParameter:
 # =============================================================================
 
 
+class TestReferenceParameter:
+    @pytest.fixture
+    def parameters(self):
+        plain = Parameter(name='plain', value=42)
+        coupled = Parameter(
+            name='coupled',
+            value=10,
+            bounds=(1, 4),
+            coupler=('subtractive', plain),
+        )
+        identical = ReferenceParameter(name='identical', references=coupled)
+        return plain, coupled, identical
+
+    def test_identical_coupling(self, parameters):
+        _, _, identical = parameters
+        assert identical.value == 32
+
+    def test_cannot_modify_IdentityParameter(self, parameters):
+        plain, coupled, identical = parameters
+        with pytest.raises(TypeError):
+            identical.set_value(101)
+
+    def test_get(self, parameters):
+        plain, coupled, identical = parameters
+        assert identical.get_value() == 32
+        assert identical.get_value(no_coupling=True) == 10
+
+    def test_bounds(self, parameters):
+        plain, coupled, identical = parameters
+        assert identical.bounds == (1, 4)
+        with pytest.raises(TypeError):
+            identical.bounds = (20, 22)
+
+    def test_fit(self, parameters):
+        plain, coupled, identical = parameters
+        assert identical.fit is False
+        with pytest.raises(TypeError):
+            identical.fit = True
+
+
 class TestComplexParameter:
     @pytest.fixture
     def uncoupled(self):
-        A, B = Parameter('real', 1), Parameter('imag', 2)
-        C = ComplexParameter('complex', A, B)
-        return A, B, C
+        a, b = Parameter('real', 1), Parameter('imag', 2)
+        c = ComplexParameter('complex', a, b)
+        return a, b, c
 
     @pytest.fixture
     def coupled(self):
-        A = Parameter('base', 1)
-        B = Parameter('modifier', 2, coupler=_coupler.AdditiveCoupler(A))
-        C = ComplexParameter('complex', A, B)
-        return A, B, C
+        a = Parameter('base', 1)
+        b = Parameter('modifier', 2, coupler=_coupler.AdditiveCoupler(a))
+        c = ComplexParameter('complex', a, b)
+        return a, b, c
 
     def test_is_parameter(self, uncoupled, coupled):
-        _, _, C1 = uncoupled
-        _, _, C2 = coupled
-        assert isinstance(C1, Parameter)
-        assert isinstance(C2, Parameter)
+        _, _, c1 = uncoupled
+        _, _, c2 = coupled
+        assert isinstance(c1, Parameter)
+        assert isinstance(c2, Parameter)
 
     def test_returns_complex(self, uncoupled, coupled):
-        A1, B1, C1 = uncoupled
-        A2, B2, C2 = coupled
-        assert isinstance(C1.value, complex)
-        assert isinstance(C2.value, complex)
-        assert C1.value == A1.value + B1.value*1J
-        assert C2.value == A2.value + B2.value*1J
+        a1, b1, c1 = uncoupled
+        a2, b2, c2 = coupled
+        assert isinstance(c1.value, complex)
+        assert isinstance(c2.value, complex)
+        assert c1.value == a1.value + b1.value*1J
+        assert c2.value == a2.value + b2.value*1J
 
     def test_get_value(self, coupled):
-        A, B, C = coupled
-        assert A.get_value() == 1
-        assert B.get_value() == (1 + 2)
-        assert C.get_value() == 1 + (1 + 2)*1J
-        assert C.get_value(no_coupling=True) == 1 + 2J
+        a, b, c = coupled
+        assert a.get_value() == 1
+        assert b.get_value() == (1 + 2)
+        assert c.get_value() == 1 + (1 + 2)*1J
+        assert c.get_value(no_coupling=True) == 1 + 2J
 
     def test_setting_values_works(self, coupled):
-        A, B, C = coupled
-        assert C.value == 1 + (1+2)*1J
-        B.set_value(1000)
-        A.set_value(42)
-        assert C.value == 42 + (1000+42)*1J
+        a, b, c = coupled
+        assert c.value == 1 + (1+2)*1J
+        b.set_value(1000)
+        a.set_value(42)
+        assert c.value == 42 + (1000+42)*1J
         with pytest.raises(TypeError):
-            C.set_value(42 + 1042J)
+            c.set_value(42 + 1042J)
 
     def test_bounds(self, uncoupled):
-        _, _, C = uncoupled
+        _, _, c = uncoupled
         with pytest.raises(TypeError):
-            C.bounds()
+            c.bounds()
 
 
 # =============================================================================
