@@ -32,5 +32,3 @@ class Test_enable_parameters:
         assert rnd_func.__name__.strip() == 'rnd_func'
         assert rnd_func.__doc__ == 'rnd_func docstring'
 
-
-help(rnd_func)

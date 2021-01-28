@@ -170,7 +170,7 @@ class ReferenceParameter(IParameter):
 
     @property
     def fit(self):
-        return self.coupler.base.fit
+        return None
 
     @fit.setter
     def fit(self, value):

@@ -196,7 +196,7 @@ class TestReferenceParameter:
 
     def test_fit(self, parameters):
         plain, coupled, identical = parameters
-        assert identical.fit is False
+        assert identical.fit is None
         with pytest.raises(TypeError):
             identical.fit = True
 
