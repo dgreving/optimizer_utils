@@ -24,7 +24,6 @@ def test_init():
     pc = ParameterController(name='test', suffix='test_suffix')
     assert isinstance(pc, ParameterController)
     assert pc.name == 'test' and pc.suffix == 'test_suffix'
-    assert pc.collection is None
 
 
 def test_add_and_get_parameters(pc, paras):
@@ -153,4 +152,8 @@ def test_keys_method_suffixing(pc, paras):
     assert all(a == b for a, b in zip(pc.keys(suffixed=False), unsuffixed))
 
 
-
+def test_repr(pc, paras):
+    pc.add(*paras)
+    representation = repr(pc)
+    assert 'Class: ParameterController' in representation
+    assert all(p.name in representation for p in paras)

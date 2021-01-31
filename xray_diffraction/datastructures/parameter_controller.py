@@ -11,11 +11,10 @@ class ParameterController:
     """
     Containerclass for collections of Parameter instances.
     """
-    def __init__(self, name='', suffix='', collection=None):
+    def __init__(self, name='', suffix=''):
         self._mapping = OrderedDict()
         self.name = name
         self.suffix = suffix
-        self.collection = collection
 
     def add(self, parameter, *parameters):
         for p in (parameter,) + parameters:
@@ -76,18 +75,12 @@ class ParameterController:
         except KeyError:
             raise KeyError(f'Parameter not in controller: {key}')
 
-    def as_list(self, only_fitted=False):
-        if not only_fitted:
-            return [p for p in self._mapping.values()]
-        else:
-            return [p for p in self._mapping.values() if p.fit]
-
-    def num_paras(self, only_fitted=False):
-        return len(self.as_list(only_fitted=only_fitted))
-
     def _suffixed_name(self, name):
         name, _, suffix = name.partition('__')
-        return name + f'__{self.suffix}'
+        if self.suffix:
+            return name + f'__{self.suffix}'
+        else:
+            return name
 
     def _unsuffixed_name(self, name):
         name, _, suffix = name.partition('__')
@@ -105,7 +98,6 @@ class ParameterController:
             self.add(other.get(key))
         return self
 
-
     def values(self, only_fitted=False):
         for para in self._mapping.values():
             if not only_fitted:
@@ -113,11 +105,9 @@ class ParameterController:
             elif para.fit:
                 yield para
 
-
     def _keys(self, only_fitted=False):
         for para in self.values(only_fitted=only_fitted):
             yield para
-
 
     def keys(self, only_fitted=False, suffixed=True):
         for para in self._keys(only_fitted=only_fitted):
@@ -126,5 +116,19 @@ class ParameterController:
             else:
                 yield self._unsuffixed_name(para.name)
 
+    def bounds(self, only_fitted=False):
+        for para in self.values(only_fitted=only_fitted):
+            yield para.bounds
 
+    def as_list(self, only_fitted=False):
+        return list(self.values(only_fitted=only_fitted))
+
+    def num_paras(self, only_fitted=False):
+        return len(self.as_list(only_fitted=only_fitted))
+
+    def __repr__(self):
+        separator = '---------------------------------\n'
+        header = '\n\nClass: {}\n'.format(self.__class__.__name__) + 2*separator
+        body = separator.join([str(p) + '\n' for p in self.values()])
+        return header + body + separator
 
