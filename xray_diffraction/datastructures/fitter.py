@@ -95,27 +95,36 @@ class Fitter(object):
             DE=self.create_DE_solver,
             )
 
+    @property
+    def fit_keys(self):
+        return list(self.master_controller.keys(only_fitted=True))
+
+    def update_master_controller(self, keys, vals):
+        self.master_controller.update(
+            *[(key, val) for key, val in zip(keys, vals)]
+        )
+
     def add_preprocessor(self, preprocess_func):
         # print("adding preprocess: ", preprocess_func.__name__)
         self.fom_handler.add_preprocessor(preprocess_func)
 
     def add_dataset(self, dataset, fit=True, fom_type='diff'):
         self.fom_handler.add_dataset(dataset, fom_type, fit)
+        return self
 
     def set_fit_callback(self, fit_callback):
         self.fit_callback = fit_callback
 
     def fom_func(self, fit_vals):
-        fit_keys = list(self.master_controller.keys(only_fitted=True))
-        self.master_controller.update(
-            *[(key, val) for key, val in zip(fit_keys, fit_vals)]
-            )
+        self.update_master_controller(self.fit_keys, fit_vals)
         self.fom_handler.calc()
         return self.fom_handler.composite_fom
 
     def optimize(self):
         solver = self.create_solver()
         result = solver.solve()
+        optimal_vals = result.x
+        self.fom_func(optimal_vals)
         return result
 
     def simulate(self, controller=None):

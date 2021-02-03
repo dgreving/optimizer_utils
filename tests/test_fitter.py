@@ -127,5 +127,6 @@ class TestFitter:
         ]
         assert all(np.isclose(val, exp) for val, exp in zip(result.x, expected))
         # test preprocessing was called for each function evaluation
-        assert preprocessor.running_index == result.nfev
+        # and once more for finalization after optimization has finished
+        assert preprocessor.running_index == result.nfev + 1
 

@@ -14,8 +14,10 @@ def pc():
 def paras():
     from xray_diffraction.datastructures.parameter import Parameter
     from xray_diffraction.datastructures.parameter import ReferenceParameter
-    p1 = Parameter(name='plain', value=1)
-    p2 = Parameter(name='coupled', value=2, coupler=('additive', p1))
+    p1 = Parameter(name='plain', value=1, bounds=(0, 2))
+    p2 = Parameter(
+        name='coupled', value=2, bounds=(0, 5), coupler=('additive', p1)
+        )
     p3 = ReferenceParameter(name='identical', references=p2)
     return p1, p2, p3
 

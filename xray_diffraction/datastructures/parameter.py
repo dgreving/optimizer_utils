@@ -2,6 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 
 from .coupler import NoCoupler, IdentityCoupler, coupler_map
+from .coupler import AdditiveCoupler, SubtractiveCoupler, MultiplicativeCoupler
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +84,6 @@ class Parameter(IParameter):
         self._raw_val = value
         self._bounds = bounds
         self.bounds_are_relative = bounds_are_relative
-        self.fit = fit
         if type(coupler) == tuple:
             identifier, base = coupler
             _coupler = coupler_map[identifier]
@@ -91,6 +91,39 @@ class Parameter(IParameter):
         else:
             self.coupler = coupler or NoCoupler(modifier=self)
         self.coupler.couple(self)
+        self._fit = None
+        self.fit = fit
+
+    @property
+    def bounds(self):
+        if self._bounds is None:
+            return self._bounds
+        if not self.bounds_are_relative:
+            return self._bounds
+        else:
+            return self._bounds[0] * self.value, self._bounds[1] * self.value
+
+    @bounds.setter
+    def bounds(self, new_bounds):
+        self._bounds = new_bounds
+
+    @property
+    def fit(self):
+        return self._fit
+
+    @fit.setter
+    def fit(self, value):
+        if (value is False) or (value is None):
+            self._fit = value
+        else:
+            if self.bounds is not None:
+                self._fit = value
+            else:
+                msg = (
+                    f'Toggling fit=True only allowed on set bounds.',
+                    f'(Parameter: {self.name})'
+                    )
+                raise AttributeError(msg)
 
     @property
     def value(self):
@@ -114,17 +147,6 @@ class Parameter(IParameter):
             return self._raw_val
         else:
             return self.value
-
-    @property
-    def bounds(self):
-        if not self.bounds_are_relative:
-            return self._bounds
-        else:
-            return self._bounds[0] * self.value, self._bounds[1] * self.value
-
-    @bounds.setter
-    def bounds(self, new_bounds):
-        self.bounds = new_bounds
 
 
 # ==============================================================================

@@ -110,11 +110,21 @@ class TestParameter:
         assert p.bounds[1] == expected[1]
 
     def test_get_and_set_fit(self):
-        p1 = Parameter(name='', fit=True)
+        p1 = Parameter(name='', fit=True, value=1, bounds=(0, 2))
         p2 = Parameter(name='', fit=False)
         assert p1.fit and not p2.fit
         p1.fit = False
         assert not p1.fit
+
+    def test_setting_fit_requires_set_bounds(self):
+        with pytest.raises(AttributeError):
+            Parameter(name='', value=42, fit=True)
+        p1 = Parameter(name='', value=42, fit=False)
+        with pytest.raises(AttributeError):
+            p1.fit = True
+        p1.bounds = (0, 100)
+        p1.fit = True
+        assert p1.fit is True
 
     def test_get_and_set_coupled(self):
         b = Parameter(name='base', value=1)
