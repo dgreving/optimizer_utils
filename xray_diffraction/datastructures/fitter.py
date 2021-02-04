@@ -4,6 +4,12 @@ from xray_diffraction.datastructures.fom_funcs import handle_masked_FOM
 
 
 class FOMCalculator:
+    """
+    Provide functionality for calculating a figure of merit, measuring the
+    similarity of arrays of data points. Data is generally provided by an
+    instance of a "Dataset" class, usually containing experimental data and a
+    way of generating arrays of simulated data.
+    """
 
     _map = {
         'diff': {'FOM': fom_funcs.FOM_diff, 'array_func': fom_funcs.diff_array},
@@ -19,7 +25,13 @@ class FOMCalculator:
         'chi': {'FOM': fom_funcs.FOM_diff, 'array_func': fom_funcs.chi_array},
         }
 
-    def __init__(self, dataset, fom_type):
+    def __init__(self, dataset, fom_type='diff'):
+        """
+        :param dataset: Instance of Dataset class, providing experimental and
+        simulated data.
+        :param fom_type: String identifier, determining which function is being
+        used to generate the figure of merit.
+        """
         self.dataset = dataset
         self.fom_type = fom_type
         self._array_func = self._map[fom_type]['array_func']
@@ -31,6 +43,12 @@ class FOMCalculator:
         self.calc()
 
     def calc(self):
+        """
+        Calculate simulated data, a FOM-array and the FOM, which is a collapsed
+        version of the FOM-array, usually obtained by some form of summation
+        over the FOM-array.
+        :return: None
+        """
         self.x_sim, self.y_sim = self.dataset.simulate()
         self.fom_array = self._create_fom_array()
         self.fom = self._calc_fom_from_array(self.fom_array)
@@ -44,6 +62,11 @@ class FOMCalculator:
 
 
 class FOMHandler:
+    """
+    Provides functionality to handle a number of Dataset instances and to
+    calculate their composite figure of merit, i.e. the average FOM of all
+    datasets that have their "fit" flat set to True.
+    """
     def __init__(self):
         self.preprocessor_funcs = []
         self.datasets = []
@@ -58,13 +81,39 @@ class FOMHandler:
         return sum([ds['fit'] for ds in self.datasets])
 
     def add_preprocessor(self, preprocessor_func):
+        """
+        Adds a preprocessing function that is invoked every time before the
+        FOM is calculated by simulating data from within the dataset objects.
+
+        :param preprocessor_func: Any callable taken no arguments. May often
+        be used to perform some updating of data before simulations are
+        performed.
+        :return: None
+        """
         self.preprocessor_funcs.append(preprocessor_func)
 
     def add_dataset(self, dataset, fom_type='diff', fit=True):
+        """
+        Add single dataset to the handler.
+
+        :param dataset: instance of dataset object
+        :param fom_type: string, identifying the type of function used to
+            calculate the figure of merit
+        :param fit: Boolean flag, indicating whether the dataset is considered
+            in calculating the composite FOM
+        :return: None
+        """
         self.datasets.append(dict(dataset=dataset, fom_type=fom_type, fit=fit))
         return self
 
     def calc(self):
+        """
+        Calculates x_sims, y_sims, fom_arrays, individual FOMs and composite FOM
+        of _all_ datasets, but uses only fitted datasets to calculate the
+        composite FOM.
+
+        :return: None
+        """
         for preprocess in self.preprocessor_funcs:
             preprocess()
         fit_flags = [ds['fit'] for ds in self.datasets]
@@ -81,64 +130,109 @@ class FOMHandler:
         self.composite_fom = sum(self.foms) / sum(fit_flags)
 
 
-class Fitter(object):
+class Fitter:
+    """
+    Providing functionality to simultaneously fit multiple sets of data by
+    variation of a set of parameters contained in a parameter_controller.
+    """
     def __init__(self, master_controller, algorithm='DE', **algo_kwargs):
         self.master_controller = master_controller
         self.algorithm_type = algorithm
         self.algo_kwargs = algo_kwargs
-        self.solver = None
         self.fit_callback = None
 
         self.fom_handler = FOMHandler()
 
         self._solvers = dict(
-            DE=self.create_DE_solver,
+            DE=self._create_DE_solver,
             )
 
     @property
     def fit_keys(self):
+        """Return a list of the names of all fitted parameters"""
         return list(self.master_controller.keys(only_fitted=True))
 
-    def update_master_controller(self, keys, vals):
+    def _update_master_controller(self, keys, vals):
+        """
+        :param keys: iterable containing all keys of parameters to update values
+        :param vals: iterable containing the new values of the updated paraeters
+        :return: None
+        """
         self.master_controller.update(
             *[(key, val) for key, val in zip(keys, vals)]
         )
 
     def add_preprocessor(self, preprocess_func):
-        # print("adding preprocess: ", preprocess_func.__name__)
+        """
+        Adds a preprocessing function that is invoked every time before the
+        FOM is calculated by simulating data from within the dataset objects.
+
+        :param preprocessor_func: Any callable taken no arguments. May often
+        be used to perform some updating of data before simulations are
+        performed.
+        :return: None
+        """
         self.fom_handler.add_preprocessor(preprocess_func)
 
     def add_dataset(self, dataset, fit=True, fom_type='diff'):
+        """
+        Add single dataset to the internal dataset handler of the fitter.
+
+        :param dataset: instance of dataset object
+        :param fom_type: string, identifying the type of function used to
+            calculate the figure of merit
+        :param fit: Boolean flag, indicating whether the dataset is considered
+            in calculating the composite FOM
+        :return: None
+        """
         self.fom_handler.add_dataset(dataset, fom_type, fit)
         return self
 
     def set_fit_callback(self, fit_callback):
+        """
+        Add a function that is invoked at each optimization step
+
+        :param fit_callback: callable
+        :return: None
+        """
         self.fit_callback = fit_callback
 
-    def fom_func(self, fit_vals):
-        self.update_master_controller(self.fit_keys, fit_vals)
+    def _fom_func(self, fit_vals):
+        """
+        Calculate the composite figure of merit , as a function of an iterable
+        of new values of the fitted parameters.
+
+        :param fit_vals: Iterable, new value of each fitted parameter
+        :return: Composite figure of merit of all fitted datasets
+        """
+        self._update_master_controller(self.fit_keys, fit_vals)
         self.fom_handler.calc()
         return self.fom_handler.composite_fom
 
     def optimize(self):
-        solver = self.create_solver()
+        """
+        Optimize all fitted datasets under the current state of the fitter.
+
+        :return: return a result object as obtained by the used solver of the
+            optimization process
+        """
+        solver = self._create_solver()
         result = solver.solve()
         optimal_vals = result.x
-        self.fom_func(optimal_vals)
+        self._fom_func(optimal_vals)
         return result
 
     def simulate(self, controller=None):
-        vals = self.master_controller.extract_vals()
-        self.fit_keys, self.fit_bounds = controller.extract_keys_and_bounds()
+        raise NotImplementedError()
         self.perform_preprocessing()
         self.fit_callback(xk=vals, convergence=None, sim_only=True)
 
-    def create_solver(self):
+    def _create_solver(self):
         return self._solvers[self.algorithm_type]()
 
-    def create_DE_solver(self):
+    def _create_DE_solver(self):
         return DifferentialEvolutionSolver(
-            self.fom_func,
+            self._fom_func,
             list(self.master_controller.bounds(only_fitted=True)),
             callback=self.fit_callback,
             **self.algo_kwargs)

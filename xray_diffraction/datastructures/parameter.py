@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class IParameter(ABC):
+    """Interface class to parameter objects"""
     @property
     @abstractmethod
     def value(self):
@@ -155,7 +156,15 @@ class Parameter(IParameter):
 
 
 class ReferenceParameter(IParameter):
+    """
+    Is identical to a referenced parameter apart from its name
+    """
     def __init__(self, name, references):
+        """
+        Creates parameter identical to reference apart form its name
+        :param name: Identifier of this parameter
+        :param references: Parameter that all other properties are shared with
+        """
         self.name = name
         self.coupler = IdentityCoupler(references)
         self.coupler.couple(self)
@@ -202,9 +211,6 @@ class ReferenceParameter(IParameter):
         )
         raise TypeError(msg)
 
-    # def __repr__2(self):
-    #     return 'ReferenceParameter'
-
 
 # ==============================================================================
 # ==============================================================================
@@ -215,10 +221,17 @@ class ComplexParameter(Parameter):
     """
     Composite object of two Parameter instances, each representing real and
     imaginary part of a complex number.
-    All interaction should be limited to real- and imag-attributes
+    All interaction should be limited to real- and imag-attributes.
+    Returns a complex number, given by the values of real- and imaginary
+    components
     """
 
     def __init__(self, name, real_part, imag_part=None):
+        """
+        :param name: Identifier of this parameter
+        :param real_part: Parameter representing real part of complex number
+        :param imag_part: Parameter representing imaginary part of complex number
+        """
         super().__init__(name)
         self.real = real_part
         self.imag = imag_part or Parameter(name='imag', value=0.)
@@ -255,26 +268,25 @@ class ScatteringFactorParameter(Parameter):
     """
     Construct of 2 to 4 Parameter instances representing real- and imaginary-,
     charge- and magnetic- parts of a scattering element.
-
-    Keyword argument:
-    name -- str
-        identifier
-    f_charge_real -- instance of Parameter class
-        Real part of the charge component of the scattering factor
-    f_charge_imag -- instance of Parameter class
-        Imaginary part of the charge component of the scattering factor
-    f_magn_real -- instance of Parameter class
-        Real part of magnetic contribution to scattering factor
-    f_magn_imag -- instance of Parameter class
-        Imaginary part of magnetic contribution to scattering factor
-    return_mode -- str, one of 'full', 'charge', 'magn', '+', '-'
-        Indicates return mode of the scattering factor. Might be only charge,
-        only magnetic, or adding or subtracting the magnetic contribution,
     """
     def __init__(self, name,
                  f_charge_real, f_charge_imag,
                  f_magn_real=None, f_magn_imag=None,
                  return_mode='full'):
+        """
+        :param name: Identifier of this Parameter
+        :param f_charge_real: instance of Parameter class
+            Imaginary part of the charge component of the scattering factor
+        :param f_charge_imag: instance of Parameter class
+            Imaginary part of the charge component of the scattering factor
+        :param f_magn_real: f_magn_real -- instance of Parameter class
+            Real part of magnetic contribution to scattering factor
+        :param f_magn_imag: instance of Parameter class
+        Imaginary part of magnetic contribution to scattering factor
+        :param return_mode: str, one of 'full', 'charge', 'magn', '+', '-'
+            Indicates return mode of the scattering factor. Might be only charge,
+            only magnetic, or adding or subtracting the magnetic contribution,
+        """
         super().__init__(name)
         self.f_ch_r = f_charge_real
         self.f_ch_i = f_charge_imag
@@ -323,19 +335,22 @@ class ParameterGroup(Parameter):
     """
     Turns a set of ordered parameters into an iterable (list)
 
-    Keyword arguments:
-    group_name -- string
-        Name of the group
-    *parameters -- Parameter instances
-        Parameters to join the group in the given order
+    Upon calling "value", return a list of the underlying parameter-values
     """
     def __init__(self, group_name, *parameters):
+        """
+        :param group_name: Identifier of this Parameter group
+        :param parameters: Parameters to join the group in the given order
+        """
         self.name = group_name
         self.group = [p for p in parameters]
         self.fit = None
 
     @property
     def value(self):
+        """
+        :return: List of values of the individual parameters of the group
+        """
         return [p.value for p in self.group]
 
     def set_value(self, value):

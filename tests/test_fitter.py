@@ -130,3 +130,4 @@ class TestFitter:
         # and once more for finalization after optimization has finished
         assert preprocessor.running_index == result.nfev + 1
 
+
