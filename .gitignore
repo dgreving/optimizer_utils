@@ -2,6 +2,7 @@ venv/
 __pycache__/
 htmlcov/
 *.egg-info/
+.idea/
 
 *.pkl
 *.log
