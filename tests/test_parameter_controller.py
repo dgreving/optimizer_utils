@@ -1,6 +1,6 @@
 import pytest
 
-from xray_diffraction.datastructures.parameter_controller import (
+from optimizer_utils.datastructures.parameter_controller import (
     ParameterController
 )
 
@@ -12,8 +12,8 @@ def pc():
 
 @pytest.fixture
 def paras():
-    from xray_diffraction.datastructures.parameter import Parameter
-    from xray_diffraction.datastructures.parameter import ReferenceParameter
+    from optimizer_utils.datastructures.parameter import Parameter
+    from optimizer_utils.datastructures.parameter import ReferenceParameter
     p1 = Parameter(name='plain', value=1, bounds=(0, 2))
     p2 = Parameter(
         name='coupled', value=2, bounds=(0, 5), coupler=('additive', p1)
@@ -46,7 +46,7 @@ def test_suffixing(pc, paras):
 
 def test_add_overwriting_behaviour(pc, paras):
     import logging
-    from xray_diffraction.datastructures.parameter import Parameter
+    from optimizer_utils.datastructures.parameter import Parameter
     plain = paras[0]
     pc.add(*paras)
     same_name_para = Parameter(name='plain', value=5000)

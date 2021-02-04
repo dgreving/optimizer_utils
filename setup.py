@@ -8,17 +8,17 @@ def read(fname):
 
 
 setup(
-    name="xray_diffraction",
-    version="1.0.0",
+    name="optimizer_utils",
+    version="0.9.9",
     author="David Greving",
     author_email="david.greving@gmail.com",
-    description=("Functionality for creating xray diffraction"),
+    description=("Functionality for parameter optimization"),
     license="BSD",
-    keywords="example documentation tutorial",
+    keywords="",
     url="",
     packages=find_packages(),
     long_description=read('README.md'),
-    install_requires=[],
+    install_requires=['numpy', 'scipy'],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Topic :: Utilities",

@@ -1,6 +1,6 @@
 from scipy.optimize._differentialevolution import DifferentialEvolutionSolver
-from xray_diffraction.datastructures import fom_funcs
-from xray_diffraction.datastructures.fom_funcs import handle_masked_FOM
+from optimizer_utils.datastructures import fom_funcs
+from optimizer_utils.datastructures.fom_funcs import handle_masked_FOM
 
 
 class FOMCalculator:

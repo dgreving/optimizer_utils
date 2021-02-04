@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from xray_diffraction.datastructures.dataset import Dataset
+from optimizer_utils.datastructures.dataset import Dataset
 
 x = np.linspace(0, 3, 4)
 y = x ** 2.0

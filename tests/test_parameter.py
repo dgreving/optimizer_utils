@@ -2,14 +2,14 @@ import pytest
 import logging
 import sys
 
-import xray_diffraction.datastructures.coupler as _coupler
+import optimizer_utils.datastructures.coupler as _coupler
 
-from xray_diffraction.datastructures.parameter import IParameter
-from xray_diffraction.datastructures.parameter import Parameter
-from xray_diffraction.datastructures.parameter import ReferenceParameter
-from xray_diffraction.datastructures.parameter import ComplexParameter
-from xray_diffraction.datastructures.parameter import ScatteringFactorParameter
-from xray_diffraction.datastructures.parameter import ParameterGroup
+from optimizer_utils.datastructures.parameter import IParameter
+from optimizer_utils.datastructures.parameter import Parameter
+from optimizer_utils.datastructures.parameter import ReferenceParameter
+from optimizer_utils.datastructures.parameter import ComplexParameter
+from optimizer_utils.datastructures.parameter import ScatteringFactorParameter
+from optimizer_utils.datastructures.parameter import ParameterGroup
 
 
 # =============================================================================
@@ -19,7 +19,7 @@ from xray_diffraction.datastructures.parameter import ParameterGroup
 
 class TestCoupler:
     def test_NoCoupler(self, capsys):
-        from xray_diffraction.datastructures.compatability import logger
+        from optimizer_utils.datastructures.compatability import logger
         streamhandler = logging.StreamHandler(sys.stdout)
         logger.addHandler(streamhandler)
 
@@ -31,7 +31,7 @@ class TestCoupler:
         assert captured.out == ''
 
     def test_IdentityCoupler(self):
-        from xray_diffraction.datastructures.coupler import IdentityCoupler
+        from optimizer_utils.datastructures.coupler import IdentityCoupler
         plain = Parameter(name='plain', value=42)
         coupled = Parameter(name='coupled', value=10, coupler=('additive', plain))
         identical = Parameter(name='coupled', coupler=IdentityCoupler(coupled))

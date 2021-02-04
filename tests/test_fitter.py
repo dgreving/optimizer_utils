@@ -1,11 +1,11 @@
 import pytest
 import numpy as np
 
-from xray_diffraction.datastructures.dataset import Dataset
-from xray_diffraction.datastructures.parameter import Parameter
-from xray_diffraction.datastructures.parameter_controller import (
+from optimizer_utils.datastructures.dataset import Dataset
+from optimizer_utils.datastructures.parameter import Parameter
+from optimizer_utils.datastructures.parameter_controller import (
     ParameterController)
-from xray_diffraction.datastructures.fitter import (
+from optimizer_utils.datastructures.fitter import (
     Fitter, FOMHandler, FOMCalculator)
 
 

@@ -1,4 +1,0 @@
-from xray_diffraction.datastructures import parameter
-from xray_diffraction.datastructures.parameter_controller import ParameterController
-from xray_diffraction.datastructures.dataset import Dataset
-from xray_diffraction.datastructures.fitter import Fitter

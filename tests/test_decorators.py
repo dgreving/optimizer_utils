@@ -1,7 +1,7 @@
 import pytest
 
-from xray_diffraction.datastructures.adapter_decorator import enable_parameters
-from xray_diffraction.datastructures.parameter import Parameter
+from optimizer_utils.datastructures.adapter_decorator import enable_parameters
+from optimizer_utils.datastructures.parameter import Parameter
 
 
 @enable_parameters

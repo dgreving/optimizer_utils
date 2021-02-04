@@ -1,7 +1,0 @@
-README.md
-setup.py
-xray_diffraction/__init__.py
-xray_diffraction.egg-info/PKG-INFO
-xray_diffraction.egg-info/SOURCES.txt
-xray_diffraction.egg-info/dependency_links.txt
-xray_diffraction.egg-info/top_level.txt

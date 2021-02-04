@@ -7,8 +7,8 @@ from abc import ABC, abstractmethod
 import numpy as np
 import matplotlib.pyplot as plt
 
-from xray_diffraction import ParameterController, Fitter, Dataset
-from xray_diffraction import parameter
+from optimizer_utils import ParameterController, Fitter, Dataset
+from optimizer_utils import parameter
 
 
 def gaussian_error(data, scale):
